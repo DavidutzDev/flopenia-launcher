@@ -31,9 +31,19 @@ javafx {
 }
 
 application {
-    getMainClass().set('fr.flopenia.dev.launcher.Main')
+    getMainClass().set('fr.flopenia.Main')
 }
 
 compileJava {
     options.encoding = "UTF-8"
+}
+
+jar {
+    manifest.attributes.put('Main-Class', 'fr.flopenia.Main')
+
+    from {
+        configurations.compileClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
 }
