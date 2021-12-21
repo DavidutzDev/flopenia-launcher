@@ -1,6 +1,6 @@
 package fr.flopenia.launcher.ui.panel;
 
-import fr.flopenia.launcher.PanelManager;
+import fr.flopenia.launcher.ui.PanelManager;
 import javafx.scene.layout.GridPane;
 
 public interface IPanel {
@@ -8,4 +8,5 @@ public interface IPanel {
     GridPane getLayout();
     void onShow();
     String getName();
+    String getStyleSheetPath();
 }

@@ -2,12 +2,9 @@ plugins {
     id 'idea'
     id 'java'
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.9'
 }
 
-apply plugin: 'org.openjfx.javafxplugin'
-
-group 'fr.flopenia.dev'
+group 'fr.flopenia.launcher'
 version '1.0.0'
 
 repositories {
@@ -19,19 +16,18 @@ repositories {
 }
 
 dependencies {
-    implementation 'de.jensd:fontawesomefx-fontawesome:4+'
+    implementation fileTree(dir: 'libs', include: '*.jar')
+
+    implementation 'de.jensd:fontawesomefx:8.9'
 
     implementation 'fr.flowarg:flowupdater:1.3.+'
     implementation 'fr.flowarg:openlauncherlib:3.+'
-}
 
-javafx {
-    version = 12
-    modules = ['javafx.controls']
+    implementation 'com.github.goxr3plus:FX-BorderlessScene:4.+'
 }
 
 application {
-    getMainClass().set('fr.flopenia.Main')
+    getMainClass().set('fr.flopenia.launcher.Main')
 }
 
 compileJava {
@@ -39,7 +35,7 @@ compileJava {
 }
 
 jar {
-    manifest.attributes.put('Main-Class', 'fr.flopenia.Main')
+    manifest.attributes.put('Main-Class', 'fr.flopenia.launcher.Main')
 
     from {
         configurations.compileClasspath.collect {
