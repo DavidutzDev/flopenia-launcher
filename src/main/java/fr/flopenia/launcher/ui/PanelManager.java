@@ -30,6 +30,7 @@ public class PanelManager {
     public void init() {
         this.stage.setTitle(Constants.LAUNCHER_NAME);
         this.stage.setMinWidth(854);
+        this.stage.setMinHeight(620);
         this.stage.setMaxHeight(480);
         this.stage.setWidth(1280);
         this.stage.setHeight(720);

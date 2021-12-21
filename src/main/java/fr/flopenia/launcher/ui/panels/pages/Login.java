@@ -3,6 +3,11 @@ package fr.flopenia.launcher.ui.panels.pages;
 import fr.flopenia.launcher.Launcher;
 import fr.flopenia.launcher.ui.PanelManager;
 import fr.flopenia.launcher.ui.panel.Panel;
+import fr.litarvan.openauth.AuthPoints;
+import fr.litarvan.openauth.AuthenticationException;
+import fr.litarvan.openauth.Authenticator;
+import fr.litarvan.openauth.model.AuthAgent;
+import fr.litarvan.openauth.model.response.AuthResponse;
 import fr.theshark34.openlauncherlib.util.Saver;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
@@ -24,6 +29,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Login extends Panel {
@@ -134,7 +140,7 @@ public class Login extends Panel {
         usernameLabel.setTranslateY(110);
         usernameLabel.setTranslateX(37.5);
 
-        TextField usernameField = new TextField(saver.get("username"));
+        TextField usernameField = new TextField("");
         GridPane.setVgrow(usernameField, Priority.ALWAYS);
         GridPane.setHgrow(usernameField, Priority.ALWAYS);
         GridPane.setValignment(usernameField, VPos.TOP);
@@ -202,18 +208,37 @@ public class Login extends Panel {
             openURL("https://www.minecraft.net/fr-fr/password/forgot");
         });
 
+        Label errorLabel = new Label("");
+        GridPane.setVgrow(errorLabel, Priority.ALWAYS);
+        GridPane.setHgrow(errorLabel, Priority.ALWAYS);
+        GridPane.setValignment(errorLabel, VPos.CENTER);
+        GridPane.setHalignment(errorLabel, HPos.LEFT);
+        errorLabel.setStyle("-fx-text-fill: #ff0000; -fx-font-size: 12px;");;
+        errorLabel.setTranslateX(37.5);
+        errorLabel.setTranslateY(55);
+
         GridPane.setVgrow(conectionButton, Priority.ALWAYS);
         GridPane.setHgrow(conectionButton, Priority.ALWAYS);
         GridPane.setValignment(conectionButton, VPos.CENTER);
         GridPane.setHalignment(conectionButton, HPos.LEFT);
         conectionButton.setTranslateX(37.5);
-        conectionButton.setTranslateY(80);
+        conectionButton.setTranslateY(100);
         conectionButton.setMinWidth(325);
         conectionButton.setMinHeight(50);
         conectionButton.setStyle("-fx-background-color: #007dbe; -fx-border-radius: 0px; -fx-background-insets: 0; -fx-font-size: 14px; -fx-text-fill: #fff");
         conectionButton.setOnMouseEntered(e -> this.layout.setCursor(Cursor.HAND));
         conectionButton.setOnMouseExited(e -> this.layout.setCursor(Cursor.DEFAULT));
-        conectionButton.setOnMouseClicked(e -> {logger.info("Connection Button ");});
+        conectionButton.setOnMouseClicked(e -> {
+            if (connectWithMojang.get()) {
+                if (usernameField.getText().isEmpty() || passwordField.getText().isEmpty()) {
+                    errorLabel.setText("Champ Incomplet");
+                } else {
+                    this.authenticate(usernameField.getText(), passwordField.getText(), errorLabel);
+                }
+            } else {
+                //TODO: CRACK
+            }
+        });
 
         Separator choseConnectSeparator = new Separator();
         GridPane.setVgrow(choseConnectSeparator, Priority.ALWAYS);
@@ -245,7 +270,7 @@ public class Login extends Panel {
         GridPane.setValignment(mojangButton, VPos.CENTER);
         GridPane.setHalignment(mojangButton, HPos.LEFT);
         mojangButton.setTranslateX(105);
-        mojangButton.setTranslateY(210);
+        mojangButton.setTranslateY(205);
         mojangButton.setMinWidth(190);
         mojangButton.setMinHeight(47);
         mojangButton.setFont(Font.font("Consolas", FontWeight.THIN, FontPosture.REGULAR, 14f));
@@ -273,12 +298,47 @@ public class Login extends Panel {
             }
         });
 
+        Label microsoftButton = new Label("Se connecter avec Microsoft");
+
+        GridPane.setVgrow(microsoftButton, Priority.ALWAYS);
+        GridPane.setHgrow(microsoftButton, Priority.ALWAYS);
+        GridPane.setValignment(microsoftButton, VPos.BOTTOM);
+        GridPane.setHalignment(microsoftButton, HPos.CENTER);
+        microsoftButton.setStyle("-fx-text-fill: #69a7ed; -fx-font-size: 14px; -fx-opacity: 50%;");
+        microsoftButton.setUnderline(true);
+        microsoftButton.setTranslateY(-5);
+        microsoftButton.setOnMouseEntered(e -> this.layout.setCursor(Cursor.HAND));
+        microsoftButton.setOnMouseExited(e -> this.layout.setCursor(Cursor.DEFAULT));
+        microsoftButton.setOnMouseClicked(e -> {
+            //TODO: CONNECTION WITH MICROSOFT
+        });
+
         mainPanel.getChildren().addAll(connectLabel, connectSeparator, usernameLabel, usernameField, usernameSeparator,
-                passwordLabel, passwordField, passwordSeparator, forgotPassword,
-                conectionButton, choseConnectSeparator, choseConnexion, mojangButton);
+                passwordLabel, passwordField, passwordSeparator, forgotPassword, errorLabel,
+                conectionButton, choseConnectSeparator, choseConnexion, mojangButton, microsoftButton);
         GridPane.setHalignment(mainPanel, HPos.CENTER);
         GridPane.setValignment(mainPanel, VPos.CENTER);
 
+    }
+
+    public void authenticate(String user, String password, Label error) {
+        Authenticator authenticator = new Authenticator(Authenticator.MOJANG_AUTH_URL, AuthPoints.NORMAL_AUTH_POINTS);
+
+        try {
+            AuthResponse response = authenticator.authenticate(AuthAgent.MINECRAFT, user, password, null);
+
+            saver.set("accessToken", response.getAccessToken());
+            saver.set("clientToken", response.getClientToken());
+            saver.save();
+
+            Launcher.getInstance().setAuthProfile(response.getSelectedProfile());
+
+            this.logger.info("Hello" + " " + response.getSelectedProfile().getName() + " !");
+
+            //TODO: redirect to homepage
+        }catch (AuthenticationException e) {
+            error.setText("Mot de passe ou adresse mail invalide");
+        }
     }
 
     private void openURL(String url){
