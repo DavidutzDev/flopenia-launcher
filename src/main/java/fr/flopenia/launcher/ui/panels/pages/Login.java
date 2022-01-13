@@ -6,8 +6,11 @@ import fr.flopenia.launcher.ui.panel.Panel;
 import fr.litarvan.openauth.AuthPoints;
 import fr.litarvan.openauth.AuthenticationException;
 import fr.litarvan.openauth.Authenticator;
+import fr.litarvan.openauth.microsoft.MicrosoftAuthenticator;
 import fr.litarvan.openauth.model.AuthAgent;
+import fr.litarvan.openauth.model.AuthProfile;
 import fr.litarvan.openauth.model.response.AuthResponse;
+import fr.theshark34.openlauncherlib.minecraft.AuthInfos;
 import fr.theshark34.openlauncherlib.util.Saver;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
@@ -24,6 +27,7 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
+import jdk.nashorn.internal.objects.NativeUint8Array;
 
 import java.awt.*;
 import java.io.IOException;
@@ -33,9 +37,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Login extends Panel {
-    GridPane loginCard = new GridPane();
 
     Saver saver = Launcher.getInstance().getSaver();
+    AtomicBoolean connectWithMojang = new AtomicBoolean(true);
 
     @Override
     public String getName() {
@@ -47,6 +51,7 @@ public class Login extends Panel {
         return "css/login.css";
     }
 
+    TextField usernameField = new TextField("");
     private final Button conectionButton = new Button("Se connecter");
 
     @Override
@@ -56,8 +61,6 @@ public class Login extends Panel {
         GridPane mainPanel = new GridPane();
         GridPane bottomPanel = new GridPane();
         GridPane backgroundImage = new GridPane();
-
-        AtomicBoolean connectWithMojang = new AtomicBoolean(true);
 
         setCanTakeAllSize(backgroundImage);
         backgroundImage.getStyleClass().add("background-image");
@@ -140,7 +143,6 @@ public class Login extends Panel {
         usernameLabel.setTranslateY(110);
         usernameLabel.setTranslateX(37.5);
 
-        TextField usernameField = new TextField("");
         GridPane.setVgrow(usernameField, Priority.ALWAYS);
         GridPane.setHgrow(usernameField, Priority.ALWAYS);
         GridPane.setValignment(usernameField, VPos.TOP);
@@ -213,7 +215,7 @@ public class Login extends Panel {
         GridPane.setHgrow(errorLabel, Priority.ALWAYS);
         GridPane.setValignment(errorLabel, VPos.CENTER);
         GridPane.setHalignment(errorLabel, HPos.LEFT);
-        errorLabel.setStyle("-fx-text-fill: #ff0000; -fx-font-size: 12px;");;
+        errorLabel.setStyle("-fx-text-fill: #ff0800; -fx-font-size: 12px;");;
         errorLabel.setTranslateX(37.5);
         errorLabel.setTranslateY(55);
 
@@ -236,7 +238,11 @@ public class Login extends Panel {
                     this.authenticate(usernameField.getText(), passwordField.getText(), errorLabel);
                 }
             } else {
-                //TODO: CRACK
+                if (usernameField.getText().isEmpty()) {
+                    errorLabel.setText("Champ Incomplet");
+                } else {
+                    authenticate(usernameField.getText(), null, errorLabel);
+                }
             }
         });
 
@@ -286,6 +292,7 @@ public class Login extends Panel {
                 mojangButton.setText("Mojang");
                 passwordField.setDisable(true);
                 passwordLabel.setText("");
+                passwordField.setText("");
                 forgotPassword.setDisable(true);
             }else {
                 connectWithMojang.set(true);
@@ -309,9 +316,7 @@ public class Login extends Panel {
         microsoftButton.setTranslateY(-5);
         microsoftButton.setOnMouseEntered(e -> this.layout.setCursor(Cursor.HAND));
         microsoftButton.setOnMouseExited(e -> this.layout.setCursor(Cursor.DEFAULT));
-        microsoftButton.setOnMouseClicked(e -> {
-            //TODO: CONNECTION WITH MICROSOFT
-        });
+        microsoftButton.setOnMouseClicked(e -> this.authenticateMS());
 
         mainPanel.getChildren().addAll(connectLabel, connectSeparator, usernameLabel, usernameField, usernameSeparator,
                 passwordLabel, passwordField, passwordSeparator, forgotPassword, errorLabel,
@@ -322,23 +327,71 @@ public class Login extends Panel {
     }
 
     public void authenticate(String user, String password, Label error) {
-        Authenticator authenticator = new Authenticator(Authenticator.MOJANG_AUTH_URL, AuthPoints.NORMAL_AUTH_POINTS);
+        if (connectWithMojang.get()) {
+            Authenticator authenticator = new Authenticator(Authenticator.MOJANG_AUTH_URL, AuthPoints.NORMAL_AUTH_POINTS);
 
-        try {
-            AuthResponse response = authenticator.authenticate(AuthAgent.MINECRAFT, user, password, null);
+            try {
+                AuthResponse response = authenticator.authenticate(AuthAgent.MINECRAFT, user, password, null);
 
-            saver.set("accessToken", response.getAccessToken());
-            saver.set("clientToken", response.getClientToken());
+                saver.set("accessToken", response.getAccessToken());
+                saver.set("clientToken", response.getClientToken());
+                saver.set("offline-username", "");
+                saver.save();
+
+                AuthInfos infos = new AuthInfos(
+                        response.getSelectedProfile().getName(),
+                        response.getAccessToken(),
+                        response.getClientToken(),
+                        response.getSelectedProfile().getId()
+                );
+
+                Launcher.getInstance().setAuthInfos(infos);
+
+                this.logger.info("Hello" + " " + infos.getUsername());
+
+                panelManager.showPanel(new App());
+            }catch (AuthenticationException e) {
+                error.setText("Mot de passe ou adresse mail invalide");
+            }
+        }else {
+            AuthInfos infos = new AuthInfos(usernameField.getText(),
+                    UUID.randomUUID().toString(),
+                    UUID.randomUUID().toString());
+            saver.set("offline-username", infos.getUsername());
+            saver.remove("accessToken");
+            saver.remove("clientToken");
             saver.save();
+            Launcher.getInstance().setAuthInfos(infos);
 
-            Launcher.getInstance().setAuthProfile(response.getSelectedProfile());
+            this.logger.info("Hello" + " " + infos.getUsername() + " !");
 
-            this.logger.info("Hello" + " " + response.getSelectedProfile().getName() + " !");
-
-            //TODO: redirect to homepage
-        }catch (AuthenticationException e) {
-            error.setText("Mot de passe ou adresse mail invalide");
+            panelManager.showPanel(new App());
         }
+    }
+
+    public void authenticateMS() {
+        MicrosoftAuthenticator authenticator = new MicrosoftAuthenticator();
+        authenticator.loginWithAsyncWebview().whenComplete(((response, error) -> {
+           if (error != null) {
+               logger.err(error.toString());
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur");
+                alert.setContentText(error.getMessage());
+                alert.show();
+                return;
+           }
+
+           saver.set("msAccessToken", response.getAccessToken());
+           saver.set("msRefreshToken", response.getRefreshToken());
+           saver.save();
+
+           Launcher.getInstance().setAuthInfos(new AuthInfos(
+                   response.getProfile().getName(),
+                   response.getAccessToken(),
+                   response.getProfile().getId()
+           ));
+           this.logger.info("Hello " + response.getProfile().getName() + " !");
+        }));
     }
 
     private void openURL(String url){
