@@ -4,7 +4,6 @@ import fr.flopenia.launcher.ui.PanelManager;
 import fr.flopenia.launcher.ui.panels.pages.App;
 import fr.flopenia.launcher.ui.panels.pages.Login;
 import fr.flopenia.launcher.utils.Constants;
-import fr.flopenia.launcher.utils.Helpers;
 import fr.flowarg.flowlogger.ILogger;
 import fr.flowarg.flowlogger.Logger;
 import fr.litarvan.openauth.AuthPoints;
@@ -13,15 +12,14 @@ import fr.litarvan.openauth.Authenticator;
 import fr.litarvan.openauth.microsoft.MicrosoftAuthResult;
 import fr.litarvan.openauth.microsoft.MicrosoftAuthenticationException;
 import fr.litarvan.openauth.microsoft.MicrosoftAuthenticator;
-import fr.litarvan.openauth.model.AuthProfile;
 import fr.litarvan.openauth.model.response.RefreshResponse;
 import fr.theshark34.openlauncherlib.minecraft.AuthInfos;
+import fr.theshark34.openlauncherlib.minecraft.util.GameDirGenerator;
 import fr.theshark34.openlauncherlib.util.Saver;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
 
-import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -31,7 +29,7 @@ public class Launcher extends Application {
     private PanelManager panelManager;
     public static Launcher instance;
     private final ILogger logger;
-    private final Path launcherDir = Paths.get(Helpers.generateGamePath(Constants.LAUNCHER_NAME).getPath());
+    private final Path launcherDir = GameDirGenerator.createGameDir(Constants.LAUNCHER_NAME, false);
     private final Saver saver;
 
     private AuthInfos authInfos = null;

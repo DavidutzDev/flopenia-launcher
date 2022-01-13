@@ -3,6 +3,7 @@ package fr.flopenia.launcher.ui.panels.pages;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import fr.flopenia.launcher.Launcher;
+import fr.flopenia.launcher.game.MinecraftInfos;
 import fr.flopenia.launcher.ui.PanelManager;
 import fr.flopenia.launcher.ui.panel.Panel;
 import fr.flopenia.launcher.utils.Constants;
@@ -10,6 +11,12 @@ import fr.flowarg.flowupdater.FlowUpdater;
 import fr.flowarg.flowupdater.download.IProgressCallback;
 import fr.flowarg.flowupdater.download.Step;
 import fr.flowarg.flowupdater.download.VanillaDownloader;
+import fr.flowarg.flowupdater.download.json.CurseFileInfo;
+import fr.flowarg.flowupdater.download.json.Mod;
+import fr.flowarg.flowupdater.download.json.OptiFineInfo;
+import fr.flowarg.flowupdater.utils.UpdaterOptions;
+import fr.flowarg.flowupdater.versions.AbstractForgeVersion;
+import fr.flowarg.flowupdater.versions.ForgeVersionBuilder;
 import fr.flowarg.flowupdater.versions.VanillaVersion;
 import fr.flowarg.flowupdater.versions.VersionType;
 import fr.theshark34.openlauncherlib.external.ExternalLaunchProfile;
@@ -34,6 +41,7 @@ import oshi.hardware.GlobalMemory;
 import java.io.File;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
+import java.util.List;
 
 public class App extends Panel {
 
@@ -244,13 +252,11 @@ public class App extends Panel {
         progressBar.setMinWidth(450);
         progressBar.setTranslateY(150);
 
-        stepLabel.setText("3254r");
         stepLabel.setStyle("-fx-text-fill: rgba(255, 255, 255);");
         setCenterH(stepLabel);
         stepLabel.setMinWidth(450);
         stepLabel.setTranslateY(170);
 
-        fileLabel.setText("file");
         fileLabel.setStyle("-fx-text-fill: rgba(255, 255, 255);");
         setCenterH(fileLabel);
         fileLabel.setMinWidth(450);
@@ -379,6 +385,8 @@ public class App extends Panel {
         pane.getChildren().addAll(blueLeftSeparator, avatarView, playerNameLabel);
     }
 
+    // GAME UPDATER AND STARTER
+
     public void play(GridPane pane) {
         isDownloading = true;
         setProgress(0, 0);
@@ -420,27 +428,38 @@ public class App extends Panel {
                 });
             }
         };
-
         try {
             final VanillaVersion vanillaVersion = new VanillaVersion.VanillaVersionBuilder()
-                    .withName("1.12.2")
-                    .withVersionType(VersionType.VANILLA)
+                    .withName(MinecraftInfos.GAME_VERSION)
+                    .withVersionType(MinecraftInfos.VERSION_TYPE)
                     .build();
-            final FlowUpdater updater = new FlowUpdater.FlowUpdaterBuilder()
-                    .withVersion(vanillaVersion)
-                    .withLogger(logger)
-                    .withProgressCallback(callback)
-                    .build();
-            updater.update(Launcher.getInstance().getLauncherDir());
-            this.startGame(updater.getVanillaVersion().getName());
+            final UpdaterOptions options = new UpdaterOptions.UpdaterOptionsBuilder()
 
+                    .build();
+
+            List<CurseFileInfo> curseMods = CurseFileInfo.getFilesFromJson(MinecraftInfos.CURSE_MODS_LIST_URL);
+            List<Mod> mods = Mod.getModsFromJson(MinecraftInfos.MODS_LIST_URL);
+
+            final AbstractForgeVersion forge = new ForgeVersionBuilder(MinecraftInfos.FORGE_VERSION_TYPE)
+                    .withForgeVersion(MinecraftInfos.FORGE_VERSION)
+                    .withCurseMods(curseMods)
+                    .withMods(mods)
+                    .build();
+
+            final FlowUpdater updater = new FlowUpdater.FlowUpdaterBuilder()
+                    .withVanillaVersion(vanillaVersion)
+                    .withForgeVersion(forge)
+                    .withLogger(Launcher.getInstance().getLogger())
+                    .withProgressCallback(callback)
+                    .withUpdaterOptions(options)
+                    .build();
+
+            updater.update(Launcher.getInstance().getLauncherDir());
+            this.startGame(updater.getForgeVersion().getForgeVersion());
         } catch (Exception exception) {
-            logger.err(exception.toString());
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Erreur");
-            alert.setHeaderText("Une erreur est survenu lors de la mise a jour");
-            alert.setContentText(exception.getMessage());
-            alert.show();
+            Launcher.getInstance().getLogger().err(exception.toString());
+            exception.printStackTrace();
+            Platform.runLater(() -> panelManager.getStage().show());
         }
     }
 
@@ -449,37 +468,33 @@ public class App extends Panel {
         File gameFolder = Launcher.getInstance().getLauncherDir().toFile();
 
         GameInfos infos = new GameInfos(
-                "Flopenia",
+                Constants.LAUNCHER_NAME,
                 gameFolder,
-                new GameVersion(gameVersion, GameType.V1_8_HIGHER),
-                new GameTweak[]{}
+                new GameVersion(gameVersion, MinecraftInfos.OLL_GAME_TYPE),
+                new GameTweak[]{GameTweak.FORGE}
         );
 
-        Thread t = new Thread(() -> {
-            try {
-                ExternalLaunchProfile profile = MinecraftLauncher.createExternalProfile(infos, GameFolder.FLOW_UPDATER, Launcher.getInstance().getAuthInfos());
-                profile.getVmArgs().add(this.getRamArgsFromSaver());
-                ExternalLauncher launcher = new ExternalLauncher(profile);
+        try {
+            ExternalLaunchProfile profile = MinecraftLauncher.createExternalProfile(infos, GameFolder.FLOW_UPDATER, Launcher.getInstance().getAuthInfos());
+            profile.getVmArgs().add(this.getRamArgsFromSaver());
+            ExternalLauncher launcher = new ExternalLauncher(profile);
 
-                Process p = launcher.launch();
+            Platform.runLater(() -> panelManager.getStage().hide());
 
-                p.waitFor();
+            Process p = launcher.launch();
 
-                System.exit(0);
-            } catch (Exception exception) {
-                exception.printStackTrace();
-                logger.err(exception.toString());
-                logger.err(exception.toString());
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Erreur");
-                alert.setHeaderText("Une erreur est survenu lors du lancement du jeu");
-                alert.setContentText(exception.getMessage());
-                alert.show();
-            }
-        });
-        t.start();
-
-        Platform.exit();
+            Platform.runLater(() -> {
+                try {
+                    p.waitFor();
+                    Platform.exit();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            Launcher.getInstance().getLogger().err(exception.toString());
+        }
     }
 
     public String getRamArgsFromSaver() {
