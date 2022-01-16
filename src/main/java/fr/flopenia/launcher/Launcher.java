@@ -1,5 +1,6 @@
 package fr.flopenia.launcher;
 
+import fr.flopenia.launcher.game.MinecraftInfos;
 import fr.flopenia.launcher.ui.PanelManager;
 import fr.flopenia.launcher.ui.panels.pages.App;
 import fr.flopenia.launcher.ui.panels.pages.Login;

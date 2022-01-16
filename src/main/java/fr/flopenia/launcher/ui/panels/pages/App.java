@@ -10,7 +10,6 @@ import fr.flopenia.launcher.utils.Constants;
 import fr.flowarg.flowupdater.FlowUpdater;
 import fr.flowarg.flowupdater.download.IProgressCallback;
 import fr.flowarg.flowupdater.download.Step;
-import fr.flowarg.flowupdater.download.VanillaDownloader;
 import fr.flowarg.flowupdater.download.json.CurseFileInfo;
 import fr.flowarg.flowupdater.download.json.Mod;
 import fr.flowarg.flowupdater.download.json.OptiFineInfo;
@@ -18,7 +17,6 @@ import fr.flowarg.flowupdater.utils.UpdaterOptions;
 import fr.flowarg.flowupdater.versions.AbstractForgeVersion;
 import fr.flowarg.flowupdater.versions.ForgeVersionBuilder;
 import fr.flowarg.flowupdater.versions.VanillaVersion;
-import fr.flowarg.flowupdater.versions.VersionType;
 import fr.theshark34.openlauncherlib.external.ExternalLaunchProfile;
 import fr.theshark34.openlauncherlib.external.ExternalLauncher;
 import fr.theshark34.openlauncherlib.minecraft.*;
@@ -254,13 +252,16 @@ public class App extends Panel {
 
         stepLabel.setStyle("-fx-text-fill: rgba(255, 255, 255);");
         setCenterH(stepLabel);
+        stepLabel.setTranslateX(-80);
         stepLabel.setMinWidth(450);
         stepLabel.setTranslateY(170);
 
         fileLabel.setStyle("-fx-text-fill: rgba(255, 255, 255);");
         setCenterH(fileLabel);
+        fileLabel.setTranslateX(-100);
         fileLabel.setMinWidth(450);
         fileLabel.setTranslateY(185);
+        fileLabel.setDisable(true);
 
         pane.getChildren().addAll(Title, adj1, adj2, desc, playButton, settingsButton);
     }
@@ -360,7 +361,7 @@ public class App extends Panel {
         blueLeftSeparator.setMaxHeight(40);
         blueLeftSeparator.setStyle("-fx-background-color: rgb(5, 179, 242); -fx-border-width: 3 3 3 0; -fx-border-color: rgb(5, 179, 242);");
 
-        String avatarUrl = (Constants.AVATAR_URL);
+        String avatarUrl = avatarUrl(Constants.AVATAR_URL);
 
         ImageView avatarView = new ImageView();
         Image avatarImg = new Image(avatarUrl);
@@ -405,7 +406,7 @@ public class App extends Panel {
             @Override
             public void step(Step step) {
                 Platform.runLater(() -> {
-                    stepTxt = StepInfo.valueOf(step.name()).getDetails();
+                    stepTxt = StepInfo. valueOf(step.name()).getDetails();
                     setStatus(String.format("%s, (%s)", stepTxt, percentTxt));
                 });
             }
@@ -434,13 +435,13 @@ public class App extends Panel {
                     .withVersionType(MinecraftInfos.VERSION_TYPE)
                     .build();
             final UpdaterOptions options = new UpdaterOptions.UpdaterOptionsBuilder()
-
                     .build();
 
             List<CurseFileInfo> curseMods = CurseFileInfo.getFilesFromJson(MinecraftInfos.CURSE_MODS_LIST_URL);
             List<Mod> mods = Mod.getModsFromJson(MinecraftInfos.MODS_LIST_URL);
 
             final AbstractForgeVersion forge = new ForgeVersionBuilder(MinecraftInfos.FORGE_VERSION_TYPE)
+                    .withOptiFine(new OptiFineInfo(MinecraftInfos.OPTIFINE_VERSION, false))
                     .withForgeVersion(MinecraftInfos.FORGE_VERSION)
                     .withCurseMods(curseMods)
                     .withMods(mods)
@@ -514,7 +515,7 @@ public class App extends Panel {
     }
 
     public void setStatus(String status) {
-        this.stepLabel.setStyle(status);
+        this.stepLabel.setText(status);
     }
 
     public void setProgress(double current, double max) {
@@ -551,7 +552,7 @@ public class App extends Panel {
         if (saver.get("offline-username") != "") {
             return avatarUrl + "MHF_Steve";
         } else {
-            return avatarUrl + Launcher.getInstance().getAuthInfos().getUsername();
+            return avatarUrl + Launcher.getInstance().getAuthInfos().getUuid();
         }
     }
 }
