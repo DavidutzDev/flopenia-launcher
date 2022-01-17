@@ -391,6 +391,8 @@ public class Login extends Panel {
                    response.getProfile().getId()
            ));
            this.logger.info("Hello " + response.getProfile().getName() + " !");
+
+            panelManager.showPanel(new App());
         }));
     }
 
