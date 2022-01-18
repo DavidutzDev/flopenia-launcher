@@ -13,6 +13,7 @@ import fr.flowarg.flowupdater.download.Step;
 import fr.flowarg.flowupdater.download.json.CurseFileInfo;
 import fr.flowarg.flowupdater.download.json.Mod;
 import fr.flowarg.flowupdater.download.json.OptiFineInfo;
+import fr.flowarg.flowupdater.utils.ModFileDeleter;
 import fr.flowarg.flowupdater.utils.UpdaterOptions;
 import fr.flowarg.flowupdater.versions.AbstractForgeVersion;
 import fr.flowarg.flowupdater.versions.ForgeVersionBuilder;
@@ -54,6 +55,8 @@ public class App extends Panel {
     Label stepLabel = new Label();
     Label fileLabel = new Label();
     boolean isDownloading = false;
+
+    MinecraftInfos minecraftInfos = new MinecraftInfos();
 
     @Override
     public String getName() {
@@ -269,6 +272,8 @@ public class App extends Panel {
     private void showSettingsMenu(GridPane pane) {
         showedMenu = "settingsMenu";
 
+        minecraftInfos.setOPTIONAL_MOD_SCHEMATICA(Boolean.parseBoolean(saver.get("optionalModSchematica")));
+
         Label Title = new Label("Paramètre du Launcher");
         GridPane.setVgrow(Title, Priority.ALWAYS);
         GridPane.setHgrow(Title, Priority.ALWAYS);
@@ -316,7 +321,7 @@ public class App extends Panel {
         GridPane.setValignment(comboBox, VPos.TOP);
         comboBox.getStyleClass().add("ramComboBox");
         comboBox.setStyle("-fx-background-color: rgba(255, 255, 255, 0.0); -fx-border-color: #155faa; -fx-border-radius: 2px;");
-        comboBox.setTranslateY(110);
+        comboBox.setTranslateY(100);
 
         //Save Button
         Button saveButton = new Button();
@@ -345,8 +350,29 @@ public class App extends Panel {
             topPanel.getChildren().clear();
             showHomeMenu(pane);
         });
+        //Optional mods
+        Label optionalModsLabel = new Label("Mods optionnel");
+        GridPane.setVgrow(optionalModsLabel, Priority.ALWAYS);
+        GridPane.setHgrow(optionalModsLabel, Priority.ALWAYS);
+        optionalModsLabel.setTranslateY(0);
+        optionalModsLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #fff;");
 
-        pane.getChildren().addAll(Title, ramLabel, comboBox, saveButton);
+        //Schematica
+        CheckBox optionalModSchematicaChbox = new CheckBox("Schematica");
+        optionalModSchematicaChbox.setSelected(minecraftInfos.OPTIONAL_MOD_SCHEMATICA);
+        GridPane.setVgrow(optionalModSchematicaChbox, Priority.ALWAYS);
+        GridPane.setHgrow(optionalModSchematicaChbox, Priority.ALWAYS);
+        optionalModSchematicaChbox.setTranslateY(30);
+        optionalModSchematicaChbox.setStyle("-fx-font-size: 14px; -fx-text-fill: #fff;");
+        optionalModSchematicaChbox.getStyleClass().add("optionalModSchematicaChbox");
+
+        optionalModSchematicaChbox.setOnMouseClicked(e -> {
+            minecraftInfos.setOPTIONAL_MOD_SCHEMATICA(optionalModSchematicaChbox.isSelected());
+            saver.set("optionalModSchematica", String.valueOf(minecraftInfos.OPTIONAL_MOD_SCHEMATICA));
+        });
+
+
+        pane.getChildren().addAll(Title, ramLabel, comboBox, saveButton, optionalModsLabel, optionalModSchematicaChbox);
     }
 
     private void showLeftBar(GridPane pane) {
@@ -406,7 +432,7 @@ public class App extends Panel {
             @Override
             public void step(Step step) {
                 Platform.runLater(() -> {
-                    stepTxt = StepInfo. valueOf(step.name()).getDetails();
+                    stepTxt = StepInfo.  valueOf(step.name()).getDetails();
                     setStatus(String.format("%s, (%s)", stepTxt, percentTxt));
                 });
             }
@@ -440,11 +466,17 @@ public class App extends Panel {
             List<CurseFileInfo> curseMods = CurseFileInfo.getFilesFromJson(MinecraftInfos.CURSE_MODS_LIST_URL);
             List<Mod> mods = Mod.getModsFromJson(MinecraftInfos.MODS_LIST_URL);
 
+            if (minecraftInfos.OPTIONAL_MOD_SCHEMATICA) {
+                curseMods.add(new CurseFileInfo(225603,2554100));
+                curseMods.add(new CurseFileInfo(225605, 2489549));
+            }
+
             final AbstractForgeVersion forge = new ForgeVersionBuilder(MinecraftInfos.FORGE_VERSION_TYPE)
                     .withOptiFine(new OptiFineInfo(MinecraftInfos.OPTIFINE_VERSION, false))
                     .withForgeVersion(MinecraftInfos.FORGE_VERSION)
                     .withCurseMods(curseMods)
                     .withMods(mods)
+                    .withFileDeleter(new ModFileDeleter(true, "flopeniacore.jar"))
                     .build();
 
             final FlowUpdater updater = new FlowUpdater.FlowUpdaterBuilder()

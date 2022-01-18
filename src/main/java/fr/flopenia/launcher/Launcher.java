@@ -101,6 +101,7 @@ public class Launcher extends Application {
                         response.getProfile().getId()
                 ));
 
+                return true;
 
             } catch (MicrosoftAuthenticationException e) {
                 saver.remove("msAccessToken");

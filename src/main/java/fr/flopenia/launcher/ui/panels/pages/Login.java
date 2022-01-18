@@ -29,6 +29,7 @@ import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import jdk.nashorn.internal.objects.NativeUint8Array;
 
+import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
@@ -371,29 +372,34 @@ public class Login extends Panel {
 
     public void authenticateMS() {
         MicrosoftAuthenticator authenticator = new MicrosoftAuthenticator();
-        authenticator.loginWithAsyncWebview().whenComplete(((response, error) -> {
-           if (error != null) {
-               logger.err(error.toString());
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Erreur");
-                alert.setContentText(error.getMessage());
-                alert.show();
+        authenticator.loginWithAsyncWebview().whenComplete((response, error) -> {
+
+            logger.err(error.getMessage());
+
+            if (error != null) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Erreur:\n" + "Le joueur n'a pas acheté Minecraft Java Edition ou n'a pas migré son compte",
+                        "Erreur",
+                        JOptionPane.ERROR_MESSAGE
+                );
                 return;
-           }
+            }
 
-           saver.set("msAccessToken", response.getAccessToken());
-           saver.set("msRefreshToken", response.getRefreshToken());
-           saver.save();
+            saver.set("msAccessToken", response.getAccessToken());
+            saver.set("msRefreshToken", response.getRefreshToken());
+            saver.save();
 
-           Launcher.getInstance().setAuthInfos(new AuthInfos(
-                   response.getProfile().getName(),
-                   response.getAccessToken(),
-                   response.getProfile().getId()
-           ));
-           this.logger.info("Hello " + response.getProfile().getName() + " !");
+            Launcher.getInstance().setAuthInfos(new AuthInfos(
+                    response.getProfile().getName(),
+                    response.getAccessToken(),
+                    response.getProfile().getId()
+            ));
+            this.logger.info("Hello " + response.getProfile().getName() + " !");
 
             panelManager.showPanel(new App());
-        }));
+
+        });
     }
 
     private void openURL(String url){
