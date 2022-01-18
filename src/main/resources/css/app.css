@@ -1,0 +1,31 @@
+.ramComboBox .arrow-button .arrow {
+    -fx-background-color: #155faa;
+}
+
+.ramComboBox .list-view {
+    -fx-background-color: rgba(0, 0, 0, 0.0);
+    -fx-border-color: #155faa;
+    -fx-border-radius: 2px;
+}
+
+.ramComboBox .list-cell {
+    -fx-background-color: rgba(0, 0, 0, 0.0);
+}
+
+.ramComboBox .track {
+    -fx-background-color: rgba(0, 0, 0, 0.0);
+}
+
+.ramComboBox .thumb {
+    -fx-background-color: rgba(54, 54, 54);
+}
+
+.optionalModSchematicaChbox .box {
+    -fx-background-color: rgba(0, 0, 0, 0.0);
+    -fx-border-color: #155faa;
+    -fx-border-radius: 2px;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: #155faa;
+}
